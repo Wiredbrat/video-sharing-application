@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "this is a video streaming platform",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/index.js"
   },
   "keywords": [
     "express.js",
@@ -15,6 +17,8 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.15.1",
     "video-steaming-app": "file:"
   },
   "devDependencies": {
