@@ -14,6 +14,10 @@
   "author": "Atul Verma",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^16.5.0",
     "video-steaming-app": "file:"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
