@@ -3,11 +3,26 @@
 import dotenv from "dotenv";
 import express from "express"
 import dbConnection from "./db/db.js";
+import app from "./app.js";
 
 dotenv.config();
+const port = process.env.PORT || 3000;
 
-dbConnection();
-
+// returns a promise
+dbConnection()
+.then(() => {
+  app.on('error', (error) => {
+    console.log('Database connention error', error);
+  })
+})
+.then(() => {
+  app.listen(port, () => {
+    console.log('app is listening on port:', port);
+  })
+})
+.catch((error) => {
+  console.log('Connection Error:', error);
+})
 
 
 
