@@ -25,3 +25,8 @@ app.use(urlencoded({
 app.use(cookieParser());
 
 export default app
+
+
+import router from './routes/user.routes.js'
+
+app.use('/api/v1/user', router)

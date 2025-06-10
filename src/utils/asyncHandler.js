@@ -1,5 +1,7 @@
-const asyncHandler = (responseHandler) => {(req, res, next) => {
-  return Promise.resolve(responseHandler(req, res, next)).catch((err) => {console.log('Database Connection Failed! ', err)})
+const asyncHandler = (responseHandler) => {return (req, res, next) => {
+  return Promise.resolve(responseHandler(req, res, next)).catch((err) => {
+    console.log('Database Connection Failed! ', err)
+  })
 }}
 
 export { asyncHandler };
