@@ -17,6 +17,7 @@ const uploadOnCloud = async (localFilePath) => {
       resource_type: "auto" //it will automatically detect the type of file to be uploaded
     })
     console.log('File uploaded successfully', response.url)
+    fs.unlinkSync(localFilePath)  //to unlink file synchronously
     return response
   } catch (error) {
     fs.unlinkSync(localFilePath) //remove the temporary file saved on server as the file didn't upload successfully  
