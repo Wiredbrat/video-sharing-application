@@ -3,6 +3,7 @@ import { ApiErrors } from '../utils/errorHandler.js'
 import { User } from '../models/user.model.js'
 import { uploadOnCloud } from '../utils/cloudinary.js'
 import { ApiResponse } from '../utils/responseHandler.js'
+import { genrateRefreshAndAccessToken } from '../utils/generateTokens.js'
 
 const registerUser = asyncHandler(async (req, res) => {
   //get user details from frontend
@@ -69,4 +70,57 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
-export {registerUser}
+
+const loginUser = asyncHandler(async (req, res) => {
+  // get data from frontend(user)
+  const {password, email, username} = req.body
+
+  //check for username or email
+  if(!username || !email) {
+    throw new ApiErrors(400, "username or email is incorrect")
+  }
+
+  //find the user
+  const user = await User.find({
+    $or: [{ username }, { email }]
+  })
+
+  if(!user) {
+    throw new ApiErrors(404, "User not found")
+  }
+
+  //check for password
+  if(!password) {
+    throw new ApiErrors(400, "password is incorrect")
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(password)
+
+  if(!isPasswordValid) {
+    throw new ApiErrors(400, "password is incorrect")
+  }
+  //generate referesh and access token
+  const {accessToken, refreshToken} = await genrateRefreshAndAccessToken(user._id)
+
+  const loggedInUser = await User.findById(user._id).select("-password - refreshToken")
+  //send cookies
+
+  const options = {
+    secure: true,
+    httpOnly: true
+  }
+  return res
+  .status(200)
+  .cookies("accessToken", accessToken, options)
+  .cookies("refreshToken", refreshToken, options)
+  .json(
+    new ApiResponse(200, {
+      user: loggedInUser, 
+      accessToken,
+      refreshToken,
+    }, "user logged in successfully")
+  )
+  //json is sent for the cases where cookie is inaccessible
+})
+
+export {registerUser, loginUser}
