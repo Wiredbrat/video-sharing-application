@@ -25,7 +25,7 @@ const userSchema = new Schema({
   },
   id: {
     type: String,
-    unique: true,
+    // unique: true,
   },
   password: {
     type: String,
@@ -66,7 +66,7 @@ userSchema.pre("save", async function(next) {
 })
 
 //custom method in schema model to check the encrypted password
-userSchema.methods.IsPasswordCorrect = async function(password) {
+userSchema.methods.isPasswordCorrect = async function(password) {
   return await bcrypt.compare(password, this.password)
 }
 
