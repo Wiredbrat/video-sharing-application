@@ -153,7 +153,8 @@ const logoutUser = asyncHandler( async(req, res) => {
   .json(new ApiResponse(200, "User logged out Successfully"))
 })
 
-refreshAccessToken = asyncHandler(async(req, res) => {
+// TO REFRESH ACCESS TOKEN ON EXPIRATION
+const refreshAccessToken = asyncHandler(async(req, res) => {
   try {
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
@@ -194,4 +195,46 @@ refreshAccessToken = asyncHandler(async(req, res) => {
   }
 })
 
-export {registerUser, loginUser, logoutUser, refreshAccessToken}
+// TO CHANGE CURRENT PASSWORD
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword, ConfirmPassword } = req.body
+  const user = req.user?._id
+  
+  const isPasswordValid = user.isPasswordCorrect(user.password)
+  
+  if(!isPasswordValid) {
+    throw new ApiErrors(401, "password is incorrect")
+  }
+
+  if(!newPassword.trim === '') {
+    throw new ApiErrors(401, "password field can not be blank")
+  } 
+
+  if(!(newPassword === ConfirmPassword)) {
+    throw new ApiErrors(401, "password does not match")
+  }
+
+  user.password = newPassword
+  await user.save({
+    validateBeforeSave: false
+  })
+
+  return res
+  .status(200)
+  .json(ApiResponse(
+    200,
+    {},
+    "Password Updated Successfully"
+  ))
+})
+
+// TO GET CURRENT USER
+const currentUser = asyncHandler(async(req, res) => {
+  const currUser = req.user.select("-password -refreshToken")
+
+  return res
+  .status(200)
+  .json(ApiResponse(200, currUser, "Current user fetched successfully"))
+})
+
+export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, }

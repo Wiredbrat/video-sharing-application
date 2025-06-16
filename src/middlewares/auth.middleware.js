@@ -18,8 +18,9 @@ const verifyToken = asyncHandler(async (req, _, next) => {
   
     }
   
-      req.user = user
-      next()
+    req.user = user
+    next()
+    
   } catch(error) {
     throw new ApiErrors(401, error.message || "Invalid Access Token")
   }
