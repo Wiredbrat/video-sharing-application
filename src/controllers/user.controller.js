@@ -237,4 +237,89 @@ const currentUser = asyncHandler(async(req, res) => {
   .json(ApiResponse(200, currUser, "Current user fetched successfully"))
 })
 
-export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, }
+// TO UPDATE THE USER DETAILS
+
+const updateUserDetails = asyncHandler(async(req, res) => {
+  const {email, username, fullName} = req.body 
+
+  if(!email || !username || !fullName) {
+    throw new ApiErrors(401, "fields can not be empty")
+  }
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id, 
+    {
+      $set: {
+        email: email,
+        fullName: fullName,
+        username: username
+      }
+    },
+    {new: true}
+  ).select("-passowrd -refreshToken")
+
+  return res.status(200)
+  .json(new ApiResponse(200, updatedUser, "User Updated Successfully"))
+})
+
+// To UPDATE USER FILES (IMAGES)
+
+const updateUserAvatar = asyncHandler(async(req, res) => {
+  const avatarLocalPath = req.file.path
+  
+  if(!avatarLocalPath) {
+    throw new ApiErrors(401, "avatar image path not found")
+  }
+
+  const avatar = await uploadOnCloud(avatarLocalPath)
+
+  if(!avatar.url) {
+    throw new ApiErrors(500, "Error occured while uploading avatar")
+  }
+  const user = User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {avatar: avatar.url}
+    },
+    {new: true}
+  ).select("-password -refreshToken")
+
+  return res.status(200)
+  .josn(new ApiResponse(200, user, "Avatar file uploaded successfully"))
+})
+
+const updateUserCoverImage = asyncHandler(async(req, res) => {
+  const coverImageLocalPath = req.file.path
+  
+  if(!coverImageLocalPath) {
+    throw new ApiErrors(401, "cover image path not found")
+  }
+
+  const coverImage = await uploadOnCloud(coverImageLocalPath)
+
+  if (coverImage.url) {
+    throw new ApiErrors(500, "Error occured while uploading cover image")
+  }
+
+  const user = User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {coverImage: coverImage.url}
+    },
+    {new: true}
+  ).select("-password -refreshToken")
+
+  return res.status(200)
+  .josn(new ApiResponse(200, user, "cover image file uploaded successfully"))
+})
+
+
+export {
+  registerUser,
+  loginUser, 
+  logoutUser, 
+  refreshAccessToken, 
+  changeCurrentPassword, 
+  updateUserDetails, 
+  updateUserAvatar, 
+  updateUserCoverImage, 
+}
