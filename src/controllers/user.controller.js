@@ -29,6 +29,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //check for images, check for avatar 
   const avatarLocalPath = req.files?.avatar[0]?.path
+
   let coverImageLocalPath
   if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
     coverImageLocalPath = req.files?.coverImage[0]?.path
@@ -132,8 +133,8 @@ const logoutUser = asyncHandler( async(req, res) => {
   User.findByIdAndUpdate(
     req.user._id, 
     {
-      $set: {
-        refreshToken: undefined
+      $unset: {
+        refreshToken: 1  //this is to clear refersh token when user is logout
       }
     },
     {
@@ -275,6 +276,8 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
   if(!avatar.url) {
     throw new ApiErrors(500, "Error occured while uploading avatar")
   }
+  // Assignment : add old image deletion code
+  
   const user = User.findByIdAndUpdate(
     req.user?._id,
     {
@@ -312,6 +315,78 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
   .josn(new ApiResponse(200, user, "cover image file uploaded successfully"))
 })
 
+const getUserChannelProfile = asyncHandler(async(req, res) => {
+  const {username} = req.params
+
+  if(!username.trim()) {
+    throw new ApiErrors(400, "Username is Missing")
+  }
+
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase()
+      }
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers"
+      }
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo"
+      }
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelSubscribedToCount: {
+          $size: "$subscribedTo"
+        },
+        isSubscribed: {
+          cond: {
+            if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+            then: true,
+            else: false
+          }
+        }
+      }
+    },
+    {
+      $project: {
+        username: 1,
+        fullName: 1,
+        subscribersCount: 1,
+        channelSubscribedToCount: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1
+      }
+    }
+
+  ])
+
+  if(!channel?.length) {
+    throw new ApiErrors(404, "channel does not exist")
+  }
+
+  return res
+  .status(200)
+  .json(new ApiResponse(
+    200,
+    channel[0],
+    "Channel data fetched successfully"
+  ))
+})
 
 export {
   registerUser,
