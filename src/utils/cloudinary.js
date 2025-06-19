@@ -25,5 +25,13 @@ const uploadOnCloud = async (localFilePath) => {
   }
   
 }
+// delete old file when new file uploaded (NOT COMPLETE YET)
+const deleteUpload = async(url) => {
+  try {
+    const fileDelete = await cloudinary.uploader.destroy(public_id)
+  } catch (error) {
+    console.error("Error while deleting file", error)
+  }
+}
 
-export {uploadOnCloud}
+export {uploadOnCloud, deleteUpload}

@@ -4,6 +4,7 @@ import { User } from '../models/user.model.js'
 import { uploadOnCloud } from '../utils/cloudinary.js'
 import { ApiResponse } from '../utils/responseHandler.js'
 import { genrateRefreshAndAccessToken } from '../utils/generateTokens.js'
+import mongoose from 'mongoose'
 
 // USER REGISTRATION FUNCTIONALITY
 const registerUser = asyncHandler(async (req, res) => {
@@ -78,6 +79,8 @@ const loginUser = asyncHandler(async (req, res) => {
   // get data from frontend(user)
   const {password, email, username} = req.body
 
+  // console.log(req.body)
+  
   //check for username or email
   if(!username && !email) {
     throw new ApiErrors(400, "username or email is incorrect")
@@ -198,10 +201,13 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
 
 // TO CHANGE CURRENT PASSWORD
 const changeCurrentPassword = asyncHandler(async (req, res) => {
-  const { oldPassword, newPassword, ConfirmPassword } = req.body
-  const user = req.user?._id
-  
-  const isPasswordValid = user.isPasswordCorrect(user.password)
+  console.log(req.body)
+  const { oldPassword, newPassword, confirmPassword } = req.body
+  const user = await User.findById(req.user?._id)
+  console.log(user)
+  const currUser = req.user
+  console.log(":Current User",currUser)
+  const isPasswordValid = user.isPasswordCorrect(oldPassword)
   
   if(!isPasswordValid) {
     throw new ApiErrors(401, "password is incorrect")
@@ -211,7 +217,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     throw new ApiErrors(401, "password field can not be blank")
   } 
 
-  if(!(newPassword === ConfirmPassword)) {
+  if(newPassword !== confirmPassword) {
     throw new ApiErrors(401, "password does not match")
   }
 
@@ -222,7 +228,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
   return res
   .status(200)
-  .json(ApiResponse(
+  .json(new ApiResponse(
     200,
     {},
     "Password Updated Successfully"
@@ -231,11 +237,11 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
 // TO GET CURRENT USER
 const currentUser = asyncHandler(async(req, res) => {
-  const currUser = req.user.select("-password -refreshToken")
+  const currUser = await User.findById(req.user._id).select(" -password ")
 
   return res
   .status(200)
-  .json(ApiResponse(200, currUser, "Current user fetched successfully"))
+  .json(new ApiResponse(200, currUser, "Current user fetched successfully"))
 })
 
 // TO UPDATE THE USER DETAILS
@@ -266,6 +272,8 @@ const updateUserDetails = asyncHandler(async(req, res) => {
 
 const updateUserAvatar = asyncHandler(async(req, res) => {
   const avatarLocalPath = req.file.path
+
+  console.log(avatarLocalPath)
   
   if(!avatarLocalPath) {
     throw new ApiErrors(401, "avatar image path not found")
@@ -278,7 +286,7 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
   }
   // Assignment : add old image deletion code
   
-  const user = User.findByIdAndUpdate(
+  await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {avatar: avatar.url}
@@ -287,7 +295,7 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
   ).select("-password -refreshToken")
 
   return res.status(200)
-  .josn(new ApiResponse(200, user, "Avatar file uploaded successfully"))
+  .json(new ApiResponse(200, {}, "Avatar file uploaded successfully"))
 })
 
 const updateUserCoverImage = asyncHandler(async(req, res) => {
@@ -303,7 +311,7 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
     throw new ApiErrors(500, "Error occured while uploading cover image")
   }
 
-  const user = User.findByIdAndUpdate(
+  await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {coverImage: coverImage.url}
@@ -312,7 +320,7 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
   ).select("-password -refreshToken")
 
   return res.status(200)
-  .josn(new ApiResponse(200, user, "cover image file uploaded successfully"))
+  .josn(new ApiResponse(200, {}, "cover image file uploaded successfully"))
 })
 
 const getUserChannelProfile = asyncHandler(async(req, res) => {
@@ -388,13 +396,68 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
   ))
 })
 
+const getWatchHistory = asyncHandler(async(req, res) => {
+  const user = User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
+    },
+    {
+      $lookup:{
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                      fullName: 1,
+                      username: 1,
+                      avatar: 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "owner"
+              }
+            }
+          }
+        ]
+      } 
+    }
+  ])
+
+  return res.
+  status(200)
+  .json(new ApiResponse(
+    200, 
+    user[0].getWatchHistory, 
+    "watched history fetched successfully"
+  ))
+})
+
 export {
   registerUser,
   loginUser, 
   logoutUser, 
+  currentUser,
   refreshAccessToken, 
   changeCurrentPassword, 
   updateUserDetails, 
   updateUserAvatar, 
   updateUserCoverImage, 
+  getUserChannelProfile,
+  getWatchHistory
 }
